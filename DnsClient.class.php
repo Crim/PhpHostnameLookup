@@ -15,7 +15,7 @@ class DnsClient
 
 	// Internals
 	protected $socket = null;
-	protected $debug = true;
+	protected $debug = false;
 
 	/**
 	 * @param String $nameserver
