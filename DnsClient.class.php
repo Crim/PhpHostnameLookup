@@ -43,8 +43,14 @@ class DnsClient
 		// Send request
 		$bytesWritten = $this->sendRequest($ipAddr);
 
-		// Read response
-		$response = $this->readFromSocket(1000);
+		try {
+			// Read response
+			$response = $this->readFromSocket(1000);
+		} catch (UnexpectedValueException $e) {
+			// Catch failed to read exception
+			$this->closeSocket();
+			return $ipAddr;
+		}
 
 		// parse response
 		$returnValue = $this->parseResponse($response, $bytesWritten);
@@ -72,6 +78,11 @@ class DnsClient
 	 */
 	protected function parseResponse($response, $requestSize)
 	{
+		// If empty or false response
+		if (!$response) {
+			return false;
+		}
+
 		$type = @unpack("s", substr($response, $requestSize + 2));
 		if ($type[1] != 0x0C00) {
 			return false;
@@ -155,11 +166,16 @@ class DnsClient
 			$startTime = microtime(true);
 		}
 
+		// Read from socket
 		$response = socket_read($this->socket, 1000);
+
+		// Validate response
+		if ($response === false) {
+			throw new UnexpectedValueException('Failed to read from socket Err#'.socket_last_error($this->socket).' - '.socket_strerror(socket_last_error($this->socket)));
+		}
 
 		if ($this->debug) {
 			echo "ReadFromSocketTime:".(microtime(true)-$startTime)."\n";
-			$startTime = microtime(true);
 		}
 
 		return $response;
